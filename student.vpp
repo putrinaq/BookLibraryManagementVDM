@@ -2,11 +2,28 @@
 class Student
 
 
---types definition 
+--types definition
 types
 public CourseName = seq of char;
 public Faculty =<FSSH> | <FCSIT> | <FSKPM> | <FEB> | <FENG> | <FSTS> |
                  <FELC> | <FMHS> | <FBE> | <FACA>;
+
+-- Date type for tracking transaction dates
+public Date::
+	day: nat
+	month: nat
+	year: nat
+inv mk_Date(d,m,y)==
+	d >= 1 and d <= 31 and
+	m >= 1 and m <= 12;
+
+-- Objective 2: BorrowRecord to store complete transaction data
+public BorrowRecord::
+	bookID: seq of char
+	borrowDate: Date
+	dueDate: Date
+	returnDate: [Date]
+	fine: real;
 
 --instance variables
 instance variables
@@ -15,6 +32,10 @@ private facultyName: Faculty;
 private yearOfStudy: nat;
 private courseRegistered: set of CourseName;
 private matricNum: nat;
+
+-- Objective 2: Data tracking for borrowing transactions
+private borrowHistory: seq of BorrowRecord;      -- Complete history of all transactions
+private currentlyBorrowed: set of seq of char;   -- Set of book IDs currently borrowed
 
 --operations definition
 operations
@@ -28,7 +49,9 @@ Student(name, faculty, year, courses, matric)==
 	yearOfStudy := year;
 	courseRegistered := courses;
 	matricNum := matric;
-	) 
+	borrowHistory := [];           -- Initialize empty history
+	currentlyBorrowed := {};       -- Initialize empty set
+	)
 	pre year >0 and card(courses)<=1;
 
 --check number of course
@@ -41,8 +64,87 @@ public isRegistered: CourseName ==> bool
 	isRegistered(c) ==
 	return c in set courseRegistered;
 
+-- Objective 2: Record a new borrow transaction
+public recordBorrow: seq of char * Date * Date ==> ()
+recordBorrow(bookId, bDate, dDate) == (
+	-- Create new record with nil return date and 0 fine (not yet returned)
+	dcl newRecord: BorrowRecord := mk_BorrowRecord(bookId, bDate, dDate, nil, 0.0);
+	borrowHistory := borrowHistory ^ [newRecord];
+	currentlyBorrowed := currentlyBorrowed union {bookId};
+)
+pre bookId not in set currentlyBorrowed  -- Cannot borrow same book twice
+and isAfter(dDate, bDate);               -- Due date must be after borrow date
+
+-- Objective 2: Record return date and calculate fine (Objective 3 & 4)
+public recordReturn: seq of char * Date ==> real
+recordReturn(bookId, retDate) == (
+	dcl fine: real := 0.0;
+	dcl i: nat := 1;
+
+	-- Find the active borrow record for this book and update it
+	while i <= len borrowHistory do (
+		if borrowHistory(i).bookID = bookId and borrowHistory(i).returnDate = nil then (
+			-- Objective 3: Detect overdue
+			if isAfter(retDate, borrowHistory(i).dueDate) then
+				-- Objective 4: Calculate fine at RM 1.00 per day
+				fine := calculateDaysDifference(borrowHistory(i).dueDate, retDate) * 1.0;
+
+			-- Objective 2: Update record with return date and fine
+			borrowHistory(i) := mk_BorrowRecord(
+				borrowHistory(i).bookID,
+				borrowHistory(i).borrowDate,
+				borrowHistory(i).dueDate,
+				retDate,
+				fine
+			);
+		);
+		i := i + 1;
+	);
+
+	currentlyBorrowed := currentlyBorrowed \ {bookId};
+	return fine;
+)
+pre bookId in set currentlyBorrowed;  -- Can only return if currently borrowed
+
+-- Objective 2: Get complete borrowing history
+public getBorrowHistory: () ==> seq of BorrowRecord
+getBorrowHistory() ==
+	return borrowHistory;
+
+-- Get number of currently borrowed books
+public getCurrentBorrowCount: () ==> nat
+getCurrentBorrowCount() ==
+	return card currentlyBorrowed;
+
+-- Get matric number (for unique ID tracking - Objective 1)
+public getMatricNum: () ==> nat
+getMatricNum() ==
+	return matricNum;
+
 --functions definition
 functions
 
+-- Check if date1 > date2
+public isAfter: Date * Date -> bool
+isAfter(date1, date2) ==
+	date1.year > date2.year or
+	(date1.year = date2.year and date1.month > date2.month) or
+	(date1.year = date2.year and
+	 date1.month = date2.month and
+	 date1.day > date2.day);
+
+-- Objective 4: Calculate number of overdue days for fine calculation
+public calculateDaysDifference: Date * Date -> nat
+calculateDaysDifference(startD, endD) ==
+	-- Same month
+	if startD.month = endD.month and startD.year = endD.year then
+		endD.day - startD.day
+	-- Month overlap (simplified: assumes 31 days per month)
+	elseif endD.year = startD.year then
+		(endD.month - startD.month) * 31 + (endD.day - startD.day)
+	-- Year overlap
+	else
+		(endD.year - startD.year) * 365 + (endD.month - startD.month) * 31 + (endD.day - startD.day)
+pre isAfter(endD, startD) or endD = startD;
 
 end Student
