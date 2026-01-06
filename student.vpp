@@ -1,0 +1,48 @@
+--class definition
+class Student
+
+
+--types definition 
+types
+public CourseName = seq of char;
+public Faculty =<FSSH> | <FCSIT> | <FSKPM> | <FEB> | <FENG> | <FSTS> |
+                 <FELC> | <FMHS> | <FBE> | <FACA>;
+
+--instance variables
+instance variables
+private studName: seq of char;
+private facultyName: Faculty;
+private yearOfStudy: nat;
+private courseRegistered: set of CourseName;
+private matricNum: nat;
+
+--operations definition
+operations
+--constructor
+public Student: seq of char * Faculty * nat * set of CourseName * nat ==> Student
+
+Student(name, faculty, year, courses, matric)==
+	(
+	studName := name;
+	facultyName := faculty;
+	yearOfStudy := year;
+	courseRegistered := courses;
+	matricNum := matric;
+	) 
+	pre year >0 and card(courses)<=1;
+
+--check number of course
+public getTotalCourses: () ==> nat
+	getTotalCourses() ==
+	return card courseRegistered;
+
+--check course registration
+public isRegistered: CourseName ==> bool
+	isRegistered(c) ==
+	return c in set courseRegistered;
+
+--functions definition
+functions
+
+
+end Student

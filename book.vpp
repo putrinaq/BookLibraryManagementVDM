@@ -1,0 +1,119 @@
+class Book
+
+--types definition
+types
+public String = seq of char;
+public Date:: 
+	day: nat
+	month: nat
+	year: nat              --invariant check date
+inv mk_Date(d,m,y)==
+	d >= 1 and d <= 31 and
+	m >= 1 and m <= 12;
+
+--instance variables
+instance variables
+private bookID: String;
+private title: String;
+private isAvailable: bool;
+private currentBorrower:[nat];
+private borrowDate: [Date];
+private dueDate: [Date];
+private returnDate: [Date]; -- Objective 2: Track actual return date
+
+--operations definition
+operations
+
+--constructor
+public Book: String* String==>Book
+Book(id, name) == (
+	bookID:= id;
+	title:= name;
+	isAvailable:= true;
+	currentBorrower:= nil;
+	borrowDate:= nil;
+	dueDate:= nil;
+	returnDate:= nil;
+);
+
+
+--Borrow Operation
+public borrow: nat * Date * Date==>()
+borrow(studentID, bDate, dDate)==(
+	isAvailable:=false;
+	currentBorrower:= studentID;
+	
+	--record transaction dates
+	borrowDate:= bDate;
+	dueDate:= dDate;
+)pre isAvailable = true 
+and isAfter(dDate, bDate) 
+and isWithinSevenDays(bDate, dDate); --the book must be available
+ 
+
+--Return Operation
+public returnBook: Date ==> real
+returnBook(retDate) == (
+
+	dcl fine: real := 0.0;
+
+	-- Objective 2: Record the return date
+	returnDate := retDate;
+
+	-- Objective 3 & 4: Detect overdue and calculate fine at RM 1.00 per day
+	if isAfter(retDate, dueDate) then
+		fine := calculateDaysDifference(dueDate, retDate) * 1.0;
+
+	--Reset book status
+	isAvailable := true;
+	currentBorrower := nil;
+	borrowDate := nil;
+	dueDate := nil;
+
+	return fine;
+
+)pre isAvailable = false
+and (isAfter(retDate, borrowDate) or retDate = borrowDate); --Can only return if it is currently borrowed
+
+--function definition
+functions
+--check if the date1 > date2
+public isAfter: Date* Date-> bool
+isAfter(date1, date2) ==
+  date1.year > date2.year or
+  (date1.year = date2.year and date1.month > date2.month) or
+  (date1.year = date2.year and
+   date1.month = date2.month and
+   date1.day > date2.day);
+
+--check if duration <=7 days
+public isWithinSevenDays: Date * Date -> bool
+isWithinSevenDays(startD, endD) ==
+	--same month
+	if startD.month = endD.month and startD.year = endD.year then
+	(endD.day - startD.day) <=7
+
+	--month overlap
+	elseif (endD.month = startD.month + 1) or (startD.month = 12 and endD.month = 1) then
+	((31 - startD.day) + endD.day) <=7
+
+	else
+	false;
+
+-- Objective 4: Calculate number of overdue days for fine calculation (RM 1.00 per day)
+public calculateDaysDifference: Date * Date -> nat
+calculateDaysDifference(startD, endD) ==
+	--same month
+	if startD.month = endD.month and startD.year = endD.year then
+		endD.day - startD.day
+
+	--month overlap (simplified: assumes 31 days per month)
+	elseif endD.year = startD.year then
+		(endD.month - startD.month) * 31 + (endD.day - startD.day)
+
+	--year overlap
+	else
+		(endD.year - startD.year) * 365 + (endD.month - startD.month) * 31 + (endD.day - startD.day)
+pre isAfter(endD, startD) or endD = startD;
+
+end Book
