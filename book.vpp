@@ -50,7 +50,11 @@ borrow(studentID, bDate, dDate)==(
 and isAfter(dDate, bDate) 
 and isWithinSevenDays(bDate, dDate); --the book must be available
  
-
+-- Objective 4: Consistent Daily Fine Calculation
+-- This operation fulfills Objective 4 by automatically calculating a fine
+-- of RM 1.00 per day when the return date exceeds the due date.
+-- The fine is computed only if the book is overdue, ensuring consistent
+-- and fair penalty enforcement.
 --Return Operation
 public returnBook: Date ==> real
 returnBook(retDate) == (
@@ -61,8 +65,11 @@ returnBook(retDate) == (
 	returnDate := retDate;
 
 	-- Objective 3 & 4: Detect overdue and calculate fine at RM 1.00 per day
+	-- Only calculate fine if the book is overdue
 	if isAfter(retDate, dueDate) then
-		fine := calculateDaysDifference(dueDate, retDate) * 1.0;
+    		fine := calculateDaysDifference(dueDate, retDate) * 1.0
+	else
+   		fine := 0.0;
 
 	--Reset book status
 	isAvailable := true;
@@ -100,7 +107,12 @@ isWithinSevenDays(startD, endD) ==
 	else
 	false;
 
--- Objective 4: Calculate number of overdue days for fine calculation (RM 1.00 per day)
+-- Objective 4: Fine Calculation Support
+-- This function formally defines the number of overdue days between
+-- the due date and return date. The result is used to calculate fines
+-- at RM 1.00 per day, ensuring objective and mathematically precise
+-- fine computation.
+-- Contributed by Yap Sin Er
 public calculateDaysDifference: Date * Date -> nat
 calculateDaysDifference(startD, endD) ==
 	--same month
