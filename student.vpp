@@ -75,6 +75,10 @@ recordBorrow(bookId, bDate, dDate) == (
 pre bookId not in set currentlyBorrowed  -- Cannot borrow same book twice
 and isAfter(dDate, bDate);               -- Due date must be after borrow date
 
+-- Objective 4: Automatic Fine Application
+-- This operation meets Objective 4 by automatically detecting overdue
+-- returns and calculating fines at RM 1.00 per day during the return
+-- transaction, eliminating manual intervention and inconsistencies.
 -- Objective 2: Record return date and calculate fine (Objective 3 & 4)
 public recordReturn: seq of char * Date ==> real
 recordReturn(bookId, retDate) == (
@@ -133,7 +137,11 @@ isAfter(date1, date2) ==
 	 date1.month = date2.month and
 	 date1.day > date2.day);
 
--- Objective 4: Calculate number of overdue days for fine calculation
+-- Objective 4: Overdue Duration Calculation
+-- This function calculates the exact number of days a book is overdue,
+-- which directly supports the consistent daily fine calculation
+-- specified in Objective 4.
+-- Contributed by Yap Sin Er
 public calculateDaysDifference: Date * Date -> nat
 calculateDaysDifference(startD, endD) ==
 	-- Same month
